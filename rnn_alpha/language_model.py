@@ -32,7 +32,7 @@ import os
 # ###########eager model#####
 # tf_contrib.eager.enable_eager_execution()
 # #############################
-DATA_PATH = '/Users/barid/Documents/batch_train_data/corpus-ptb/data/'
+DATA_PATH = '/Users/barid/Documents/workspace/batch_data/corpus-ptb/data/'
 BATCH_SIZE = 64
 LEARNING_RATE = 0.1
 KEEP_PROB = 0.4
@@ -172,7 +172,7 @@ def optimizer(scope_name, loss, lr, clipping):
 
     """
     with tf.variable_scope(scope_name):
-        cost = tf.reduce_mean(loss)
+        cost = tf.reduce_sum(loss)
         train_var = tf.trainable_variables()
         gradients, _ = tf.clip_by_global_norm(tf.gradients(cost, train_var), 5)
         optimizer = tf.train.GradientDescentOptimizer(lr)

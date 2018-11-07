@@ -62,10 +62,12 @@ def doc2id(filename, word_to_id, time_step):
     """
     doc = read_data(file_name=filename)
     doc_id = np.zeros([time_step])
+    n = 0
     for s in doc:
         temp = [word_to_id[word] for word in s if word in word_to_id]
         temp = fix_sequence_length(time_step, temp)
         doc_id = np.vstack((doc_id, temp))
+        n += 1
     return doc_id[1:].astype(np.int32)
 
 
