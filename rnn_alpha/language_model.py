@@ -24,17 +24,23 @@
         LSTMStateTuple
 
 """
+
+import sys
+sys.path.insert(0, '/home/vivalavida/workspace/batch_data/corpus-ptb')
+# sys.path.insert(0, '/Users/barid/Documents/workspace/batch_data/corpus-ptb')
 import tensorflow as tf
 import ptb_reader
 import tensorflow.contrib as tf_contrib
 import time
 import os
+
 # ###########eager model#####
 # tf_contrib.eager.enable_eager_execution()
 # #############################
-DATA_PATH = '/Users/barid/Documents/workspace/batch_data/corpus-ptb/data/'
+# DATA_PATH = '/Users/barid/Documents/workspace/batch_data/corpus-ptb/data/'
+DATA_PATH = sys.path[0] + '/data'
 BATCH_SIZE = 64
-LEARNING_RATE = 0.1
+LEARNING_RATE = 0.01
 KEEP_PROB = 0.4
 GLOBAL_STEP = tf.Variable(initial_value=0, trainable=False)
 NUMBER_EPOCH = 20

@@ -3,7 +3,7 @@
 import tensorflow as tf
 import numpy as np
 import os
-DATA_PATH = '/Users/barid/Documents/batch_train_data/corpus-ptb/data/'
+# DATA_PATH = '/Users/barid/Documents/batch_train_data/corpus-ptb/data/'
 
 TOKEN = '<eos>'
 
@@ -82,7 +82,7 @@ def generate_ptb(filepath, time_step, batch_size):
         return:
             [batch_size, text_vector]
     """
-    shuffle = 1000
+    shuffle = 10000
     train_path = os.path.join(filepath, "ptb.train.txt")
     validation_path = os.path.join(filepath, "ptb.valid.txt")
     test_path = os.path.join(filepath, "ptb.test.txt")
