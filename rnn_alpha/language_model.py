@@ -40,16 +40,17 @@ import os
 # DATA_PATH = '/Users/barid/Documents/workspace/batch_data/corpus-ptb/data/'
 DATA_PATH = sys.path[0] + '/data'
 BATCH_SIZE = 64
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.1
 KEEP_PROB = 0.4
 GLOBAL_STEP = tf.Variable(initial_value=0, trainable=False)
-NUMBER_EPOCH = 20
+NUMBER_EPOCH = 30
 CLIPPING = 5
 # ~~~~~~~~~~~~~~ basic LSTM configure~~~~~~~~~~~~~~~~~
-TIME_STEP = 8  # number of hidden state, it also means the lenght of input and output sentence
+TIME_STEP = 16  # number of hidden state, it also means the lenght of input and output sentence
 NUMBER_UNITS = 1024  # dimension of each hidden state
 # ~~~~~~~~~~~~~ embedding configure ~~~~~~~~~~~~~~~~~
 EMBEDDING_SIZE = NUMBER_UNITS
+NUMBER_LAYER = 1
 
 
 # =========================visualization=========================
@@ -121,10 +122,15 @@ def rnn(scope_name, cell, cell_state, X, time_step, number_units, batch_size):
     """
     # import pdb; pdb.set_trace()
     with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
-        cell_output = []
-        for t in range(0, time_step):
-            output, cell_state = cell(X[:, t, :], cell_state)
-            cell_output.append(output)
+        if cell_state is not None:
+            cell_state = cell_state[0]
+            cell_output = []
+            for t in range(0, time_step):
+                output, cell_state = cell(X[:, t, :], cell_state)
+                cell_output.append(output)
+        else:
+            cell_output, cell_state = cell(tf.transpose(X, (1, 0, 2)))
+
     return cell, cell_state, cell_output
 
 
@@ -294,22 +300,48 @@ def epoch_evaluation(sess, epoch, step, init, predict, label, accuracy,
     return step
 
 
-def train_nn(train, validation, test, vocabulary, time_step, number_units,
-             embedding_size, batch_size, keep_prob, number_epoch, gstep, lr,
-             clipping):
+def train_nn(train,
+             validation,
+             test,
+             vocabulary,
+             time_step,
+             number_units,
+             embedding_size,
+             batch_size,
+             keep_prob,
+             number_epoch,
+             gstep,
+             lr,
+             clipping,
+             number_layer,
+             cudnn=True):
     try:
         os.makedirs("checkpoints")
         os.makedirs("checkpoints/rnn_alpha")
     except OSError:
         pass
-    writer = tf.summary.FileWriter('graphs/rnn_alpha', tf.get_default_graph())
-    cell = tf.nn.rnn_cell.LSTMCell(number_units)
-    state = cell.zero_state(batch_size, dtype=tf.float32)
+    if cudnn:
+        cell = tf_contrib.cudnn_rnn.CudnnLSTM(
+            num_layers=number_layer, num_units=number_units)
+        state = None
+    else:
+        cell = tf.nn.rnn_cell.LSTMCell(number_units)
+        state = cell.zero_state(batch_size, dtype=tf.float32)
+
+    # param_size = cell.params_size()
+    # rnn_param = tf.get_variable(
+    #     "lstm_param", initializer=tf.random_uniform([param_size], -0.1, 0.1))
+    # c, h = tf.zeros([number_layer, batch_size, number_units, time_step])
+    # # initial_state = (tf.contrib.rnn.LSTMStateTuple(h=h, c=c), )
+    # # outputs, h, c = cell(inputs, h, c, rnn_param, True)
+    # state = [h, c, rnn_param]
     cell, cell_state, cell_output, iterator_train, iterator_val, iterator_test, source_sentence, target_sentence, loss, opt, summarize_op, accuracy = build_computational_grap(
         train, validation, test, vocabulary, cell, state, time_step,
         number_units, embedding_size, batch_size, keep_prob, lr, clipping)
+    # config = tf.ConfigProto(device_count={"/device:gpu":0})
+    with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+        writer = tf.summary.FileWriter('graphs/rnn_alpha', sess.graph)
 
-    with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver()
         ckpts = tf.train.get_checkpoint_state('checkpoints/rnn_alpha')
@@ -333,7 +365,7 @@ def train_nn(train, validation, test, vocabulary, time_step, number_units,
 train, validation, test, vocabulary = get_pdb_data(BATCH_SIZE, DATA_PATH)
 train_nn(train, validation, test, vocabulary, TIME_STEP, NUMBER_UNITS,
          EMBEDDING_SIZE, BATCH_SIZE, KEEP_PROB, NUMBER_EPOCH, GLOBAL_STEP,
-         LEARNING_RATE, CLIPPING)
+         LEARNING_RATE, CLIPPING, NUMBER_LAYER)
 #  #########################################eager model############
 # print(
 #     "This is the eager model for debug purpose, if you are going to train the model pls comment eager model and\
