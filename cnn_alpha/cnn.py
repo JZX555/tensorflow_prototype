@@ -77,7 +77,7 @@ def plot_image(image_set, cls_true, cls_predict=None, show_num=9):
 
 # ================main mode===============
 # ~~~~~~~~~~__init__~~~~~~~~~~
-MNIST_PATH = "/Users/barid/Documents/batch_train_data/image-MNIST"
+MNIST_PATH = "C:/Users/50568/Desktop/我/Macheaning Cafe/ten_test/batch_train_data/image-MNIST"
 BATCH_SIZE = 128
 TRAIN_PRO = 0.75
 LR = 0.001
