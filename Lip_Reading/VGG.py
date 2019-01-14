@@ -62,7 +62,7 @@ def fc_layer(inputs, out_dim, scope_name):
         fc = tf.matmul(inputs, w) + b
         return fc, w
 
-def VGG_layer(image, training = True, eager = False):
+def VGG_layer(image, training = True, timestep,eager = False):
     """
         Buliding whole neural network.
         For demo, the computitional graph is following:
@@ -72,67 +72,73 @@ def VGG_layer(image, training = True, eager = False):
         return:
          logits, loss, opt, cnn1_w, cnn2_w, fc1_w
     """
+    fcs = []
+
     if training:
-        cnn1, cnn1_w = cnn_layer(
-            inputs = image,
-            receptive_size = 3,
-            stride = 1,
-            number_filter = 96,
-            padding_0 = 'SAME',
-            scope_name = "cnn1")
-        pooling1 = pooling_layer(
-            inputs = cnn1,
-            receptive_size = 3,
-            stride = 2,
-            padding_0 = 'VALID',
-            scope_name = "pooling1")
+        for i in range(timestep):
+            cnn1, cnn1_w = cnn_layer(
+                inputs = image[:, i, :, :, :],
+                receptive_size = 3,
+                stride = 1,
+                number_filter = 96,
+                padding_0 = 'SAME',
+                scope_name = "cnn1")
+            pooling1 = pooling_layer(
+                inputs = cnn1,
+                receptive_size = 3,
+                stride = 2,
+                padding_0 = 'VALID',
+                scope_name = "pooling1")
+    
+            cnn2, cnn2_w = cnn_layer(
+                inputs = pooling1,
+                receptive_size = 3,
+                stride = 2,
+                number_filter = 256,
+                padding_0 = 'SAME',
+                scope_name = "cnn2")
+            pooling2 = pooling_layer(
+                inputs = cnn2,
+                receptive_size = 3,
+                stride = 2,
+                padding_0 = 'VALID',
+                scope_name = "pooling2")
+    
+            cnn3, cnn3_w = cnn_layer(
+                inputs = pooling2,
+                receptive_size = 3,
+                stride = 1,
+                number_filter = 512,
+                padding_0 = 'SAME',
+                scope_name = "cnn3")
+            cnn4, cnn4_w = cnn_layer(
+                inputs = cnn3,
+                receptive_size = 3,
+                stride = 1,
+                number_filter = 512,
+                padding_0 = 'SAME',
+                scope_name = "cnn4") 
+    
+            cnn5, cnn5_w = cnn_layer(
+                inputs = cnn4,
+                receptive_size = 3,
+                stride = 1,
+                number_filter = 512,
+                padding_0 = 'SAME',
+                scope_name = "cnn5")   
+            pooling5 = pooling_layer(
+                inputs = cnn5,
+                receptive_size = 3,
+                stride = 2,
+                padding_0 = 'VALID',
+                scope_name = "pooling5")
 
-        cnn2, cnn2_w = cnn_layer(
-            inputs = pooling1,
-            receptive_size = 3,
-            stride = 2,
-            number_filter = 256,
-            padding_0 = 'SAME',
-            scope_name = "cnn2")
-        pooling2 = pooling_layer(
-            inputs = cnn2,
-            receptive_size = 3,
-            stride = 2,
-            padding_0 = 'VALID',
-            scope_name = "pooling2")
+            fc6, fc6_w = fc_layer(inputs = pooling5, out_dim = 512, scope_name="fc1");
+            fcs.append(fc6)
+            
+        fcs = tf.transpose(tf.concat(0, fcs), perm = [1, 0, 2])
 
-        cnn3, cnn3_w = cnn_layer(
-            inputs = pooling2,
-            receptive_size = 3,
-            stride = 1,
-            number_filter = 512,
-            padding_0 = 'SAME',
-            scope_name = "cnn3")
-        cnn4, cnn4_w = cnn_layer(
-            inputs = cnn3,
-            receptive_size = 3,
-            stride = 1,
-            number_filter = 512,
-            padding_0 = 'SAME',
-            scope_name = "cnn4") 
-
-        cnn5, cnn5_w = cnn_layer(
-            inputs = cnn4,
-            receptive_size = 3,
-            stride = 1,
-            number_filter = 512,
-            padding_0 = 'SAME',
-            scope_name = "cnn5")   
-        pooling5 = pooling_layer(
-            inputs = cnn5,
-            receptive_size = 3,
-            stride = 2,
-            padding_0 = 'VALID',
-            scope_name = "pooling5")
-
-        fc6, fc6_w = fc_layer(inputs = pooling5, out_dim = 512, scope_name="fc1");
-
-        return fc6, fc6_w
+        return fcs, fc6_w
 
 # ------------------------------LSTM model------------------------------------
 def rnn(scope_name, cell1, cell2, cell3, cell_state1, cell_state2, cell_state3, X, time_step, number_units, batch_size):
@@ -140,7 +146,6 @@ def rnn(scope_name, cell1, cell2, cell3, cell_state1, cell_state2, cell_state3, 
         return:
             hidden_state, probabilities, logit
     """
-    # import pdb; pdb.set_trace()
     with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
         if cell_state1 is not None:
             cell_state1 = cell_state1[0]
@@ -171,7 +176,8 @@ def Visual_LSTM_layer(image, cell1, cell2, cell3, state1, state2, state3, time_s
             final_output, hidden_state, loss, opt, iterator_train, iterator_val, iterator_test
     """
     embeded_source, _ = VGG_layer(image)
-    embeded_source = tf.reshape(embeded_source, [-1, time_step, 512])
+    # embeded_source = tf.resize(embeded_source, shape = [:, time_step, :])
+
     cell1, cell2, cell3, cell_state1, cell_state2, cell_state3, cells_output = rnn(
                                         "Visual_LSTM", cell1, cell2, cell3, state1, state2, state3, 
                                         embeded_source, time_step, number_units, batch_size)
