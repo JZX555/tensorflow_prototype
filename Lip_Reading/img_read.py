@@ -11,7 +11,7 @@ import cv2
 #created by chenfenyu 2018.3.20
 
 
-cap = cv2.VideoCapture("C:/Users/50568/Desktop/interview.avi")
+cap = cv2.VideoCapture("C:/Users/50568/Desktop/1.avi")
 #获取外接摄像头
 eye = cv2.imread("C:/Users/50568/Desktop/kkk.jpg")
 #读取眼睛区域替换的图片
@@ -23,18 +23,19 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 #确定保存视频的格式
 video = cv2.VideoWriter("C:/Users/50568/Desktop/我/Macheaning Cafe/a.avi", fourcc, 5, size)
 ''' cv.VideoWriter参数（视频存放路径，视频存放格式，fps帧率，视频宽高）
-     注意点1：OpenCV只支持avi的格式，而且生成的视频文件不能大于2GB，而且不能添加音频
+    注意点1：OpenCV只支持avi的格式，而且生成的视频文件不能大于2GB，而且不能添加音频
     注意点2：若填写的文件名已存在，则该视频不会录制成功，但可正常使用
 '''
 print(cap.isOpened())
 #检测是否摄像头正常打开:成功打开时，isOpened返回ture
-classifier_face = cv2.CascadeClassifier("D:/Code/opencv_contrib/modules/face/data/cascades/haarcascade_frontalface_default.xml")
+classifier_face = cv2.CascadeClassifier("D:/Code/opencv_contrib/modules/face/data/cascades/haarcascade_frontalface_alt.xml")
 #定义分类器（人脸识别）
 classifier_eye = cv2.CascadeClassifier("D:/Code/opencv_contrib/modules/face/data/cascades/haarcascade_eye.xml")
 #定义分类器（人眼识别）
 classifier_mouth=cv2.CascadeClassifier("D:/Code/opencv_contrib/modules/face/data/cascades/haarcascade_mcs_mouth.xml")
 #定义分类器（嘴巴识别）
 i = 0
+img2 = None
 while (True):
     #取得cap.isOpened()返回状态为True,即检测到人脸  
     i += 1 
@@ -42,7 +43,8 @@ while (True):
         continue
     
     ret, img = cap.read()
-    img = cv2.imread("C:/Users/50568/Desktop/qqq.png")
+    img2 = img
+    # img = cv2.imread("C:/Users/50568/Desktop/qqq.png")
     '''第一个参数ret的值为True或False，代表有没有读到图片
        第二个参数是frame，是当前截取一帧的图片
     '''
@@ -55,7 +57,7 @@ while (True):
         for faceRect_face in faceRects_face:
             x, y, w, h = faceRect_face
             #获取图像x起点,y起点,宽，高
-            h1=int(float(h/1.5))
+            h1=int(float(h / 1.8))
             #截取人脸区域高度的一半位置，以精确识别眼睛的位置
             intx=int(x)
             inty=int(y)
@@ -76,7 +78,7 @@ while (True):
             '''矩形画出区域 rectangle参数（图像，左顶点坐标(x,y)，右下顶点坐标（x+w,y+h），线条颜色，线条粗细）
                 画出人脸识别下部分区域，方便定位
             '''
-            faceRects_mouth = classifier_mouth.detectMultiScale(img_facehalf_bottom, 1.1, 1, cv2.CASCADE_SCALE_IMAGE, (5, 20))
+            faceRects_mouth = classifier_mouth.detectMultiScale(img_facehalf_bottom, 1.1, 1, cv2.CASCADE_SCALE_IMAGE, (20, 50))
             #嘴巴检测器
             if len(faceRects_mouth) > 0:
                 for faceRect_mouth in faceRects_mouth:
@@ -84,6 +86,8 @@ while (True):
                     cv2.rectangle(img_facehalf_bottom, (int(xm1), int(ym1)), (int(xm1) + int(wm1), int(ym1) + int(hm2)), (0,0, 255), 2, 0)
                     img_mx = cv2.resize(mouth, (wm1, hm2), interpolation=cv2.INTER_CUBIC)
                     
+                    img2 = img_facehalf_bottom[ym1 : (ym1 + hm2), xm1 : (xm1 + wm1)]
+
                     cv2.imwrite("mouth.jpg", img_facehalf_bottom[ym1 : (ym1 + hm2), xm1 : (xm1 + wm1)])
                     #调整覆盖图片大小 resize参数（图像，检测到的（宽，高），缩放类型）
                     if key == ord('z'):
@@ -124,10 +128,10 @@ while (True):
                         img[n_eyetag[0, 0]:n_eyetag[0, 1], n_eyetag[0, 2]:n_eyetag[0, 3]] = img_ex
 
             video.write(img)
-
-    cv2.imshow('video', img)
+    
+    cv2.imshow('video', img2)
     #显示图片，标题名字为video
-    cv2.resizeWindow('video',1280,720)
+    # cv2.resizeWindow('video',1280,720)
     #调整窗口大小video为1280*720
     if key == ord('q'):
     #检测到键盘输入q，退出循环
